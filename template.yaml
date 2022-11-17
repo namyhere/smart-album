@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+2	Transform: AWS::Serverless-2016-10-31
+3	Description: Python file including external library
+4	Resources:
+5	 LambdaFunction1:
+6	  Type: AWS::Serverless::Function
+7	  Properties:
+8	   Handler: lambda_function.lambda_handler
+9	   Runtime: python3.7
+10	 FunctionName: search-photos
+11	 CodeUri: ./Frontend #Directory the source file is
+12	   
+13	LambdaFunction2:
+14	 Type: AWS::Serverless::Function
+15	 Properties:
+16	   Handler: lambda_function.lambda_handler
+17	   Runtime: python3.7
+18	   FunctionName: index-photos
+19	   CodeUri: ./Frontend #Directory the source file is

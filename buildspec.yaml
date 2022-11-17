@@ -1,0 +1,13 @@
+version: 0.2
+2	phases:
+3	 install:
+4	  runtime-versions:
+5	   python: 3.7
+6	 build: 
+7	  commands:
+8	   - aws cloudformation package --template-file template.yaml --s3-bucket code-pipeline-lambda --output-template-file packaged-template.yaml
+9	 artifacts:
+10	 type: zip
+11	 files:
+12	  - template.yaml
+13	  - packaged-template.yaml
