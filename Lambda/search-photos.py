@@ -1,97 +1,52 @@
 import json
-import math
-import dateutil.parser
-import datetime
-import time
-import os
-import logging
 import boto3
+import time
 import requests
-import urllib.parse
-from requests_aws4auth import AWS4Auth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
-    
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-headers = { "Content-Type": "application/json" }
-region = 'us-east-1'
-lex = boto3.client('lex-runtime', region_name=region)
 
 def lambda_handler(event, context):
+    print(event)
+    inputText = event['queryStringParameters']['q']
+    keywords = get_keywords(inputText)
+    image_array = get_image_locations(keywords)
+    return {
+        'statusCode': 200,
+        'headers':{
+            'Access-Control-Allow-Origin':'*',
+            'Access-Control-Allow-Credentials':True
+        },
+        'body': json.dumps({"results":image_array})
+    }
 
-    print ('event : ', event)
-
-    q1 = event["queryStringParameters"]['q']
-        
-    print("q1:", q1 )
-    labels = get_labels(q1)
-    print("labels", labels)
-    if len(labels) != 0:
-        img_paths = get_photo_path(labels)
-
-    if not img_paths:
-        return{
-            'statusCode':200,
-            "headers": {"Access-Control-Allow-Origin":"*"},
-            'body': json.dumps('No Results found')
-        }
-    else:    
-        return{
-            'statusCode': 200,
-            'headers': {"Access-Control-Allow-Origin":"*"},
-            'body': {
-                'imagePaths':img_paths,
-                'userQuery':q1,
-                'labels': labels,
-            },
-            'isBase64Encoded': False
-        }
-    
-def get_labels(query):
+def get_keywords(inputText):
+    lex = boto3.client('lex-runtime')
     response = lex.post_text(
-        botName='SearchBot',                 
-        botAlias='$LATEST',
-        userId="string",           
-        inputText=query
+        botName = 'SearchBot',
+        botAlias = '$LATEST',
+        userId = 'userId',
+        inputText = inputText
     )
-    print("lex-response", response)
+    print(response['slots'])
+    keywords = []
+    slots = response['slots']
+    keywords = [v for _, v in slots.items() if v]
+    print(keywords)
+    return keywords
     
-    labels = []
-    if 'slots' not in response:
-        print("No photo collection for query {}".format(query))
-    else:
-        print ("slot: ",response['slots'])
-        slot_val = response['slots']
-        for key,value in slot_val.items():
-            if value!=None:
-                labels.append(value)
-    return labels
-
-    
-def get_photo_path(keys):
-    
-    host = 'vpc-photos-ryu2uf43z2m5tbnfpuizbuc3ua.us-east-1.es.amazonaws.com'
-    es = Elasticsearch(
-    hosts=[{'host': host,'port':443}],
-    use_ssl=True,
-    verify_certs=True,
-    connection_class=RequestsHttpConnection,
-    http_auth=('admin', 'Admin@12345')
-    )
-    
-    resp = []
-    for key in keys:
-        if (key is not None) and key != '':
-            searchData = es.search({"query": {"match": {"labels": key}}})
-            resp.append(searchData)
-    print(resp)
-    output = []
-    for r in resp:
-        if 'hits' in r:
-             for val in r['hits']['hits']:
-                key = val['_source']['objectKey']
-                if key not in output:
-                    output.append('YOUR-BUCKET-LINK/'+key)
-    print (output)
-    return output  
+def get_image_locations(keywords):
+    endpoint = 'https://search-all-photos-kegyxncx6jlwnvwwuj22hn4pli.us-east-1.es.amazonaws.com/all-photos/_search'
+    headers = {'Content-Type': 'application/json'}
+    prepared_q = []
+    for k in keywords:
+        prepared_q.append({"match": {"labels": k}})
+    q = {"query": {"bool": {"should": prepared_q}}}
+    r = requests.post(endpoint, headers=headers, data=json.dumps(q), auth=('admin', 'Admin@12345'))
+    print(r.json())
+    image_array = []
+    for each in r.json()['hits']['hits']:
+        objectKey = each['_source']['objectKey']
+        bucket = each['_source']['bucket']
+        image_url = "https://" + bucket + ".s3.amazonaws.com/" + objectKey
+        image_array.append(image_url)
+        print(each['_source']['labels'])
+    print(image_array)
+    return image_array

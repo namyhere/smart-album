@@ -1,64 +1,42 @@
 import json
-import os
-import time
-import logging
 import boto3
-from datetime import datetime
-from elasticsearch import Elasticsearch, RequestsHttpConnection
-from requests_aws4auth import AWS4Auth
+import time
+import requests
 
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-region = 'us-east-1'
-service = 'es'
-host = 'vpc-photos-ryu2uf43z2m5tbnfpuizbuc3ua.us-east-1.es.amazonaws.com/'
-rekognition = boto3.client('rekognition')
-
-es = Elasticsearch(
-    hosts=[{'host': host,'port':443}],
-    use_ssl=True,
-    verify_certs=True,
-    connection_class=RequestsHttpConnection,
-    http_auth=('admin', 'Admin@12345')
-    )
-
-def handler(event, context):
-
-    os.environ['TZ'] = 'America/New_York'
-    time.tzset()
-
-    records = event['Records']
-    #print(records)
-
-    for record in records:
-
-        s3object = record['s3']
-        bucket = s3object['bucket']['name']
-        objectKey = s3object['object']['key']
-
-        image = {
-            'S3Object' : {
-                'Bucket' : bucket,
-                'Name' : objectKey
-            }
+def lambda_handler(event, context):
+    print(event)
+    for record in event['Records']:
+        bucket = record['s3']['bucket']['name']
+        photokey = record['s3']['object']['key']
+        print(bucket, photokey)
+        labels = []
+        labels = get_photo_labels(bucket, photokey)
+        new_doc = {
+            "objectKey": photokey,
+            "bucket": bucket,
+            "createdTimestamp": time.strftime("%Y%m%d-%H%M%S"),
+            "labels": labels
         }
-
-        response = rekognition.detect_labels(Image = image)
-        labels = list(map(lambda x : x['Name'], response['Labels']))
-        timestamp = datetime.now().strftime('%Y-%d-%mT%H:%M:%S')
-
-        esObject = json.dumps({
-            'objectKey' : objectKey,
-            'bucket' : bucket,
-            'createdTimesatamp' : timestamp,
-            'labels' : labels
-        })
-
-        es.index(index = "photos", doc_type = "Photo", id = objectKey, body = esObject, refresh = True)
-
-
+        index_into_es('all-photos','photo',json.dumps(new_doc))
+    print('Done')
     return {
         'statusCode': 200,
         'body': json.dumps('Hello from Lambda!')
     }
+    
+def get_photo_labels(bucket, photokey):
+    rekClient = boto3.client('rekognition')
+    print('Detecting Labels...')
+    response = rekClient.detect_labels(Image={'S3Object':{'Bucket':bucket,'Name':photokey}}, MaxLabels=10, MinConfidence=90)
+    print('Done')
+    print(response)
+    print(response['Labels'])
+    labels = [label['Name'] for label in response['Labels']]
+    print(labels)
+    return labels
+
+def index_into_es(index, type_doc, new_doc):
+    endpoint = 'https://search-all-photos-kegyxncx6jlwnvwwuj22hn4pli.us-east-1.es.amazonaws.com/{}/{}'.format(index, type_doc)
+    headers = {'Content-Type':'application/json'}
+    res = requests.post(endpoint, data=new_doc, headers=headers, auth=('admin', 'Admin@12345'))
+    print(res.content)

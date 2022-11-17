@@ -4,7 +4,6 @@
         <link rel="stylesheet" href="index.css">
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-        <script type="text/javascript" src="render.js"></script>
         <script type="text/javascript" src="lib/axios/dist/axios.standalone.js"></script>
         <script type="text/javascript" src="lib/CryptoJS/rollups/hmac-sha256.js"></script>
         <script type="text/javascript" src="lib/CryptoJS/rollups/sha256.js"></script>
@@ -17,6 +16,7 @@
         <script type="text/javascript" src="lib/apiGatewayCore/simpleHttpClient.js"></script>
         <script type="text/javascript" src="lib/apiGatewayCore/utils.js"></script>
         <script type="text/javascript" src="apigClient.js"></script>
+        <script type="text/javascript" src="render.js"></script>
     </head>
     <center>
         <header class="photos_title">
@@ -51,6 +51,7 @@
                 </form>
                 <button id="upload_files" onclick="uploadPhoto()">Upload</button>
             </center>
+            <center><p id="uploadText" style="display:hidden; font-size: 20px;"></p></center>
         </div>
     </body>
 </html>

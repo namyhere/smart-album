@@ -76,9 +76,9 @@ function searchPhotos(searchText) {
 
             var n;
             for (n = 0; n < image_paths.length; n++) {
-                images_list = image_paths[n]["url"].split('/');
+                images_list = image_paths[n].split('/');
                 imageName = images_list[images_list.length - 1];
-                photosDiv.innerHTML += '<figure class="inline-block"><img src="' + image_paths[n]["url"] + '" style="width:100%"><figcaption>' + imageName + '</figcaption></figure>';
+                photosDiv.innerHTML += '<figure class="inline-block"><img src="' + image_paths[n] + '" style="width:100%"><figcaption>' + imageName + '</figcaption></figure>';
             }
         }).catch(function(result) {
             var photosDiv = document.getElementById("photos_search_results");
@@ -104,20 +104,19 @@ function getBase64(file) {
 }
 
 function uploadPhoto() {
-    var file = document.getElementById('uploaded_file').files[0];
+     var file = document.getElementById('uploaded_file').files[0];
     console.log(custom_labels.value);
 
     var file_data;
     
     var additionalParams = {
         headers: {
-            // 'Access-Control-Allow-Origin': '*',
             'x-amz-meta-CustomLabels': custom_labels.value,
             'Content-Type': file.type
         }
     };
 
-    url = "https://37tfa2k7q6.execute-api.us-east-1.amazonaws.com/prd/upload/b2-photos-b2/" + file.name;
+    url = "https://jnimjh1u0j.execute-api.us-east-1.amazonaws.com/dev/upload/b2-photos-q2/" + file.name;
     axios.put(url, file, additionalParams).then((response) => {
     console.log(" New " + response.data);
     console.log("Success");
