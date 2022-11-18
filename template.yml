@@ -2,6 +2,10 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: CD Demo Lambda
 Resources:
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: backend-bucket-smartalbum
   LambdaFunction1:
     Type: AWS::Serverless::Function
     Properties:
@@ -24,3 +28,13 @@ Resources:
       MemorySize: 128
       Timeout: 30
       Role: 'arn:aws:iam::164394037047:role/service-role/index-photos-role-mtlmnhgd'
+      Environment:
+        Variables:
+          REGION: us-east-1
+      Events:
+        S3Trigger:
+          Type: S3
+          Properties:
+            Bucket:
+              Ref: ImagesBucket
+            Events: s3:ObjectCreated:Put
