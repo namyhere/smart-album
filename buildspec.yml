@@ -6,14 +6,10 @@ phases:
  build: 
   commands:
    - sam build
-   - export BUCKET2=frontend-bucket-smartalbum
    - export BUCKET1=backend-bucket-smartalbum
    - sam package --template-file template.yml --s3-bucket $BUCKET1 --output-template-file outputTemplate.yml
-   - sam package --template-file frontTemplate.yml --s3-bucket $BUCKET2 --output-template-file outputfrontTemplate.yml
 artifacts:
  type: zip
  files:
   - template.yml
-  - frontTemplate.yml
   - outputTemplate.yml
-  - outputfrontTemplate.yml
