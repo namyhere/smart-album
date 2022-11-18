@@ -1,0 +1,188 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  frontends3bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+        BucketName: frontend-bucket-smartalbum
+        AccessControl: PublicRead
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: index.html
+
+  backends3bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+        BucketName: backend-bucket-smartalbum
+        AccessControl: PublicRead
+
+  ES:
+    Type: "AWS::OpenSearchService::Domain"
+    Properties:
+      DomainName: "photos"
+      AccessPolicies:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              AWS: "*"
+            Action: "es:*"
+            Resource: "arn:aws:es:us-east-1:164394037047:domain/photos"
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      AdvancedSecurityOptions:
+        Enabled: true
+        InternalUserDatabaseEnabled: true
+        MasterUserOptions:
+          MasterUserName: admin
+          MasterUserPassword: Admin@12345
+      DomainEndpointOptions:
+        EnforceHTTPS: true
+      ClusterConfig:
+        DedicatedMasterEnabled: "false"
+        InstanceCount: "1"
+        ZoneAwarenessEnabled: "false"
+        InstanceType: "t3.small.search"
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 10
+        VolumeType: "gp2"
+      EngineVersion: "Elasticsearch_7.10"
+
+  # API Gateway 
+  RestApiPhotoAlbum:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      BodyS3Location:
+        Bucket: 'cloud-formation-s3bucket'
+        Key: 'swagger.yaml'
+      Description: "Rest api having search photos and upload photos methods."
+      Name: RestApiPhotoAlbum
+      FailOnWarnings: true
+      EndpointConfiguration:
+        Types:
+          - "REGIONAL"
+
+  LFPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: arn:aws:iam::164394037047:role/service-role/AWSCodePipelineServiceRole-us-east-1-SmartAlbumPipeline
+      ArtifactStore:
+        Type: S3
+        Location: cloud-formation-s3bucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Provider: GitHub
+                Version: "1"
+              RunOrder: 1
+              Configuration:
+                Repo: "smart-album"
+                Branch: "main"
+                OAuthToken: "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"
+                Owner: "namyhere"
+                PollForSourceChanges: "true"
+              OutputArtifacts:
+                - Name: SourceArtifact
+              InputArtifacts: []
+              Region: "us-east-1"
+              Namespace: SourceVariables
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: "1"
+              RunOrder: 1
+              Configuration:
+                ProjectName: "SmartAlbumPipelineProject"
+              OutputArtifacts:
+                - Name: BuildArtifact
+              InputArtifacts:
+                - Name: SourceArtifact
+              Region: "us-east-1"
+              Namespace: BuildVariables
+        - Name: Deploy
+          Actions:
+            - Name: Deploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: "1"
+              RunOrder: 1
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                Capabilities: CAPABILITY_AUTO_EXPAND
+                ChangeSetName: "LambdaPipeline-changeset"
+                RoleArn: arn:aws:iam::164394037047:role/smart-album-cloudformation-role
+                StackName: "SmartAlbumStack"
+                TemplatePath: BuildArtifact::outputTemplate.yml
+              OutputArtifacts: []
+              InputArtifacts:
+                - Name: BuildArtifact
+              Region: us-east-1
+              Namespace: DeployVariables
+
+  PipelineS3:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      RoleArn: arn:aws:iam::164394037047:role/service-role/AWSCodePipelineServiceRole-us-east-1-SmartAlbumPipeline
+      ArtifactStore:
+        Type: S3
+        Location: cloud-formation-s3bucket
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: Source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Repo: "smart-album"
+                Branch: "main"
+                OAuthToken: "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"
+                Owner: "namyhere"
+                PollForSourceChanges: false
+              OutputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: Deploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: S3
+              Configuration:
+                BucketName: !Ref frontends3bucket
+                Extract: true
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1
+
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt
+      - frontends3bucket
+      - WebsiteURL
+    Description: URL for website hosted on S3
+  S3BucketSecureURL:
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt
+          - frontends3bucket
+          - DomainName
+    Description: Name of S3 bucket to hold website content
