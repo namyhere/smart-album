@@ -40,7 +40,7 @@ Resources:
           Type: S3
           Properties:
             Bucket:
-              Ref: backend-bucket
+              Ref: backend-bucket-smartalbum
             Events: s3:ObjectCreated:Put
       Environment:
         Variables:
