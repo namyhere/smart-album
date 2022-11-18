@@ -5,8 +5,8 @@ Resources:
   LambdaFunction1:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: search-photos
-      Handler: lambda_function.lambda_handler
+      FunctionName: lf1
+      Handler: search-photos.lambda_handler
       Runtime: python3.7
       CodeUri: ./Lambda
       Description: 'Lambda function for CD Demo'
@@ -27,8 +27,8 @@ Resources:
   LambdaFunction2:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: index-photos
-      Handler: lambda_function.lambda_handler
+      FunctionName: lf2
+      Handler: index-photos.lambda_handler
       Runtime: python3.7
       CodeUri: ./Lambda
       Description: 'Lambda function for CD Demo'
