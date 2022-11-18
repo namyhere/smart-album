@@ -3,6 +3,8 @@ import boto3
 import time
 import requests
 
+# CloudFormation Demo for Index Photos lambda function
+
 def lambda_handler(event, context):
     print(event)
     for record in event['Records']:
