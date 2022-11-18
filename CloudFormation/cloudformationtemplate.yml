@@ -85,7 +85,7 @@ Resources:
               Configuration:
                 Repo: "smart-album"
                 Branch: "main"
-                OAuthToken: "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"
+                OAuthToken: "DacbQx8v3g9hCUD51fOvQpjmlnCJiiw7IGKNXZOMQBJf0LFUAzI"
                 Owner: "namyhere"
                 PollForSourceChanges: "true"
               OutputArtifacts:
@@ -151,7 +151,7 @@ Resources:
               Configuration:
                 Repo: "smart-album"
                 Branch: "main"
-                OAuthToken: "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"
+                OAuthToken: "g9hCUD51fOvQpjmlnCJiiw7IGKNXZOMQBJf0LFUAzI"
                 Owner: "namyhere"
                 PollForSourceChanges: false
               OutputArtifacts:
