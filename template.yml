@@ -18,7 +18,7 @@ Resources:
           REGION: us-east-1
       Events:
         APIGatewayTrigger:
-          Type: 'AWS::ApiGateway::RestApi'
+          Type: AWS::ApiGateway::RestApi
           Properties:
             Name : RestApiPhotoAlbum
       Environment:
@@ -39,8 +39,7 @@ Resources:
         S3Trigger:
           Type: S3
           Properties:
-            Bucket:
-              Ref: backend-bucket-smartalbum
+            Name: backend-bucket-smartalbum
             Events: s3:ObjectCreated:Put
       Environment:
         Variables:
